@@ -17,6 +17,7 @@
 *             Beth Massi        (bmassi@goamerica.net)
 *             Jürgen Wondzinski (wOOdy@ProLib.de)
 *             Fernando D. Bozzo (fdbozzo@gmail.com)
+*             Mike Yearwood     (mike.yearwood@gmail.com)
 *
 * Parameters: cTableName  C   Fully-qualified name of the SCX/VCX/MNX/FRX/LBX
 *             cType       C   Code indicating the file type (See PRJTYPE_ constants, defined below)
@@ -1007,14 +1008,31 @@ DEFINE CLASS SccTextEngine AS CUSTOM
 	PROCEDURE CreateTable(cFieldlist, iCodePage)
 		* The following construct uses macros, and since the max length 
 		* of macros = 255 chrs, the cFieldList needs to get split into separate vars
-		LOCAL i, cVar
+*!*			LOCAL i, cVar
+*!*			FOR i = 1 TO 6
+*!*				cVar = "c"+TRANSFORM(i)
+*!*				LOCAL &cVar
+*!*				&cVar = LEFT(cFieldList, 250 )
+*!*				cFieldList = SUBSTR(cFieldList, 251)
+*!*			ENDFOR
+*!*			
+*!*			IF NOT EMPTY(cFieldList)	&& will never happen, since VFP9 structures will not change anymore
+*!*				* Still too long for loop, Not supported
+*!*				THIS.CANCEL(ERR_FIELDLISTTOOLONG_LOC)
+*!*			ELSE
+*!*				CREATE TABLE (THIS.cTableName) FREE (&c1.&c2.&c3.&c4.&c5.&c6)
+*!*			ENDIF
+
+		*Mike Yearwood - 2024-11-14
+		*The following code does the same as the above but much more quickly
+		*and concisely. The c variables are private and removed just in case.
+		LOCAL i
 		FOR i = 1 TO 6
-			cVar = "c"+TRANSFORM(i)
-			LOCAL &cVar
-			&cVar = LEFT(cFieldList, 250 )
-			cFieldList = SUBSTR(cFieldList, 251)
-		ENDFOR
-		
+			STORE SUBSTR(m.cFieldList,250*m.i-249,250) TO ('c'+TRANSFORM(m.i))
+		ENDFOR i
+		CREATE TABLE (THIS.cTableName) FREE (&c1.&c2.&c3.&c4.&c5.&c6)
+		RELEASE c1, c2, c3, c4, c5, c6	
+	
 		IF NOT EMPTY(cFieldList)	&& will never happen, since VFP9 structures will not change anymore
 			* Still too long for loop, Not supported
 			THIS.CANCEL(ERR_FIELDLISTTOOLONG_LOC)
